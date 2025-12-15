@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: go-consumer
-        image: localhost:5000/kafka-consumer:v1
+        image: localhost:5000/kafka-consumer:v2
         imagePullPolicy: IfNotPresent
         env:
         - name: KAFKA_BROKERS

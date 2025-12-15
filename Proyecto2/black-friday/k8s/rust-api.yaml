@@ -16,8 +16,8 @@ spec:
       containers:
       - name: rust-api
         # NOTA: En GCP cambiaremos 'localhost:5000' por la IP de tu VM de Zot
-        image: localhost:5000/rust-api:v1
-        imagePullPolicy: IfNotPresent
+        image: localhost:5000/rust-api:v4
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
         env:
