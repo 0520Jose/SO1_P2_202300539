@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-api
+  namespace: black-friday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rust-api
+  template:
+    metadata:
+      labels:
+        app: rust-api
+    spec:
+      containers:
+      - name: rust-api
+        # NOTA: En GCP cambiaremos 'localhost:5000' por la IP de tu VM de Zot
+        image: localhost:5000/rust-api:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        # La API de Rust necesita saber dónde está el Writer de Go
+        - name: GRPC_HOST
+          value: "go-writer-service:50051"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rust-api-service
+  namespace: black-friday
+spec:
+  type: LoadBalancer # En local o GCP esto te dará una IP externa
+  selector:
+    app: rust-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+---
+# Configuración del Horizontal Pod Autoscaler (HPA)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rust-api-hpa
+  namespace: black-friday
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rust-api
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 30

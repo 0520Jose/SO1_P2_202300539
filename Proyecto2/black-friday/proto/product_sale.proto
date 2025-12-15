@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package blackfriday;
+
+option go_package = "./pb";
+
+message ProductSaleRequest {
+    CategoriaProducto categoria = 1;
+    string producto_id = 2;
+    double precio = 3;
+    int32 cantidad_vendida = 4;
+}
+
+enum CategoriaProducto {
+    UNKNOWN = 0;
+    Electronica = 1;
+    Ropa = 2;
+    Hogar = 3;
+    Belleza = 4;
+}
+
+message ProductSaleResponse {
+    string estado = 1;
+    bool exito = 2;
+}
+
+service ProductSaleService {
+    rpc ProcesarVenta (ProductSaleRequest) returns (ProductSaleResponse);
+}

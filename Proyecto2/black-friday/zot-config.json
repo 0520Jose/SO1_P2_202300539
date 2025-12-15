@@ -1,0 +1,10 @@
+{
+    "distSpecVersion": "1.1.0-dev",
+    "storage": {
+        "rootDirectory": "/var/lib/zot/data"
+    },
+    "http": {
+        "address": "0.0.0.0",
+        "port": "5000"
+    }
+}
