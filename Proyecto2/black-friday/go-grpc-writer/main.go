@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"net"
-	"os"      // <--- IMPORTANTE: Agregado para leer variables de entorno
-	"strings" // <--- IMPORTANTE: Agregado para procesar la lista de brokers
+	"os"
+	"strings"
 
 	pb "grpc-writer/pb"
 
@@ -14,17 +14,20 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Estructura del servidor gRPC
 type server struct {
 	pb.UnimplementedProductSaleServiceServer
 	producer sarama.SyncProducer
 }
 
+// Implementación del método ProcesarVenta
 func (s *server) ProcesarVenta(ctx context.Context, req *pb.ProductSaleRequest) (*pb.ProductSaleResponse, error) {
 	msgBytes, err := json.Marshal(req)
 	if err != nil {
 		return &pb.ProductSaleResponse{Estado: "Error marshaling", Exito: false}, nil
 	}
 
+	// Enviar el mensaje a Kafka
 	msg := &sarama.ProducerMessage{
 		Topic: "sales-topic",
 		Value: sarama.StringEncoder(msgBytes),
@@ -38,40 +41,35 @@ func (s *server) ProcesarVenta(ctx context.Context, req *pb.ProductSaleRequest) 
 	return &pb.ProductSaleResponse{Estado: "Procesado", Exito: true}, nil
 }
 
+// Función principal para iniciar el servidor gRPC
 func main() {
-	// --- LÓGICA DE CONEXIÓN DINÁMICA ---
-	// Leemos la variable de entorno que definimos en Kubernetes
 	kafkaEnv := os.Getenv("KAFKA_BROKERS")
 	if kafkaEnv == "" {
-		kafkaEnv = "localhost:9092" // Valor por defecto para pruebas locales
+		kafkaEnv = "localhost:9092"
 	}
-	// Convertimos el string "broker1:9092,broker2:9092" en una lista
 	brokers := strings.Split(kafkaEnv, ",")
-	
-	log.Printf("🔌 Writer intentando conectar a Kafka en: %v", brokers)
-	// -----------------------------------
 
+	// Configuración del productor Sarama
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
 	config.Producer.RequiredAcks = sarama.WaitForAll
-
-	// Aquí usamos la variable 'brokers' en lugar de "127.0.0.1:9092"
 	producer, err := sarama.NewSyncProducer(brokers, config)
 	if err != nil {
-		log.Fatalf("Failed to start Sarama producer: %v", err)
+		log.Fatalf("Error al crear productor Sarama: %v", err)
 	}
 	defer producer.Close()
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("Error al conectar: %v", err)
 	}
 
+	// Crear y registrar el servidor gRPC
 	s := grpc.NewServer()
 	pb.RegisterProductSaleServiceServer(s, &server{producer: producer})
 
-	log.Printf("🚀 Server gRPC listening at %v", lis.Addr())
+	log.Printf("Server gRPC escuchando en: %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Fatalf("Error al conectar al servidor gRPC: %v", err)
 	}
 }

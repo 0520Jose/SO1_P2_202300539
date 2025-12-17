@@ -23,7 +23,7 @@ metadata:
     strimzi.io/kraft: enabled
 spec:
   kafka:
-    version: 4.0.0 # Intentaremos con la última estable 3.8 que soporta KRaft, si falla usaremos 3.7.0
+    version: 4.0.0
     listeners:
       - name: plain
         port: 9092

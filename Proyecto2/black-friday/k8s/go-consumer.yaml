@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: go-consumer
-        image: localhost:5000/kafka-consumer:v2
-        imagePullPolicy: IfNotPresent
+        image: 172.31.13.124:5000/go-consumer:v3
+        imagePullPolicy: Always
         env:
         - name: KAFKA_BROKERS
           value: "my-cluster-kafka-bootstrap.kafka.svc:9092"

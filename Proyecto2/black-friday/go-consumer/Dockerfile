@@ -1,6 +1,4 @@
-# Etapa de compilación
 FROM golang:1.24.5-alpine AS builder
-
 
 WORKDIR /app
 
@@ -11,7 +9,6 @@ COPY . .
 
 RUN go build -o worker main.go
 
-# Etapa final
 FROM alpine:latest
 WORKDIR /root/
 COPY --from=builder /app/worker .

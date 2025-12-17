@@ -4,7 +4,7 @@ metadata:
   name: go-writer
   namespace: black-friday
 spec:
-  replicas: 2 # Requisito: Pruebas con réplicas
+  replicas: 2
   selector:
     matchLabels:
       app: go-writer
@@ -15,12 +15,11 @@ spec:
     spec:
       containers:
       - name: go-writer
-        image: localhost:5000/grpc-writer:v2
-        imagePullPolicy: IfNotPresent
+        image: 172.31.13.124:5000/go-writer:v3
+        imagePullPolicy: Always
         ports:
         - containerPort: 50051
         env:
-        # Apuntará al servicio de Kafka en el clúster
         - name: KAFKA_BROKERS
           value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
         resources:
@@ -34,7 +33,7 @@ metadata:
   name: go-writer-service
   namespace: black-friday
 spec:
-  type: ClusterIP # Solo accesible dentro del clúster
+  type: ClusterIP
   selector:
     app: go-writer
   ports:

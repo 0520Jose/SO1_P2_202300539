@@ -1,4 +1,3 @@
-# -------- Builder --------
 FROM rust:1.82-slim-bookworm AS builder
 
 WORKDIR /app
@@ -8,16 +7,13 @@ RUN apt-get update && apt-get install -y \
     libprotobuf-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar el proyecto REAL
 COPY Cargo.toml Cargo.lock ./
 COPY build.rs ./
 COPY proto ./proto
 COPY src ./src
 
-# Compilar
 RUN cargo build --release
 
-# -------- Runtime --------
 FROM debian:bookworm-slim
 
 WORKDIR /app
