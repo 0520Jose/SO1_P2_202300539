@@ -1,28 +1,12 @@
-// Rust API que recibe solicitudes HTTP y se comunica con el servicio gRPC
-
-// Dependencias de Axum y Tonic 
 use axum::{
     routing::post,
     Json, Router,
 };
-
-// Dependencias para serialización y deserialización
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use tonic::transport::Channel;
 
-
-// Importar el cliente gRPC generado por Tonic
-pub mod blackfriday {
-    tonic::include_proto!("blackfriday");
-}
-
-// Usar el cliente gRPC
-use blackfriday::product_sale_service_client::ProductSaleServiceClient;
-use blackfriday::{ProductSaleRequest, CategoriaProducto};
-
-// Estructuras para manejar la entrada JSON
-#[derive(Deserialize)]
+// Estructura de entrada (Desde Locust)
+#[derive(Deserialize, Serialize, Debug)]
 struct PurchaseInput {
     categoria: i32,
     producto_id: String,
@@ -30,62 +14,64 @@ struct PurchaseInput {
     cantidad_vendida: i32,
 }
 
-// Estructura para la respuesta JSON
-#[derive(serde::Serialize)]
+// Estructura de respuesta
+#[derive(Serialize, Deserialize)]
 struct StatusResponse {
     status: String,
     exito: bool,
 }
 
+// Handler: Recibe de Locust -> Envía a Go-Bridge (HTTP)
 async fn handle_purchase(
-    axum::extract::State(mut grpc_client): axum::extract::State<ProductSaleServiceClient<Channel>>,
     Json(payload): Json<PurchaseInput>,
 ) -> Json<StatusResponse> {
     
-    // Crear la solicitud gRPC
-    let request = tonic::Request::new(ProductSaleRequest {
-        categoria: payload.categoria,
-        producto_id: payload.producto_id,
-        precio: payload.precio,
-        cantidad_vendida: payload.cantidad_vendida,
-    });
+    // URL del Bridge (nombre del servicio en K8s que definimos en el paso 1)
+    let bridge_url = "http://go-bridge-service:80"; 
+    let client = reqwest::Client::new();
 
-    // Llamar al método gRPC y manejar la respuesta
-    match grpc_client.procesar_venta(request).await {
+    // Enviar POST al Bridge
+    let res = client.post(format!("{}/forward", bridge_url))
+        .json(&payload)
+        .send()
+        .await;
+
+    match res {
         Ok(response) => {
-            let res = response.into_inner();
-            Json(StatusResponse {
-                status: res.estado,
-                exito: res.exito,
-            })
+            if response.status().is_success() {
+                // Si el Bridge respondió OK, decodificamos su respuesta
+                if let Ok(json_res) = response.json::<StatusResponse>().await {
+                    Json(json_res)
+                } else {
+                    Json(StatusResponse {
+                        status: "Error decodificando respuesta del Bridge".to_string(),
+                        exito: false,
+                    })
+                }
+            } else {
+                Json(StatusResponse {
+                    status: format!("Bridge respondió error: {}", response.status()),
+                    exito: false,
+                })
+            }
         }
         Err(e) => {
             Json(StatusResponse {
-                status: format!("Error gRPC: {}", e),
+                status: format!("No se pudo conectar al Bridge: {}", e),
                 exito: false,
             })
         }
     }
 }
 
-// Función principal para iniciar el servidor Axum
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Configurar el cliente gRPC
-    let grpc_host = std::env::var("GRPC_HOST")
-        .unwrap_or_else(|_| "http://localhost:50051".to_string());
-    let grpc_client = ProductSaleServiceClient::connect(grpc_host).await?;
-
-    // Configurar la aplicación Axum
+async fn main() {
     let app = Router::new()
-        .route("/purchase", post(handle_purchase))
-        .with_state(grpc_client);
+        .route("/purchase", post(handle_purchase));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    println!("Rust API escuchando en {}", addr);
+    println!("Rust API (HTTP Client Mode) escuchando en {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
-
-    Ok(())
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
