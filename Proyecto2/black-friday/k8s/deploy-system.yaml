@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-writer
+  namespace: black-friday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-writer
+  template:
+    metadata:
+      labels:
+        app: go-writer
+    spec:
+      containers:
+      - name: go-writer
+        image: 172.31.14.61:5000/go-writer:v1
+        ports:
+        - containerPort: 50051
+        env:
+        - name: KAFKA_BROKERS
+          value: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-writer-service
+  namespace: black-friday
+spec:
+  type: ClusterIP
+  selector:
+    app: go-writer
+  ports:
+    - port: 50051
+      targetPort: 50051
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-bridge
+  namespace: black-friday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-bridge
+  template:
+    metadata:
+      labels:
+        app: go-bridge
+    spec:
+      containers:
+      - name: go-bridge
+        image: 172.31.14.61:5000/go-bridge:v1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GRPC_HOST
+          value: "go-writer-service:50051"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-bridge-service
+  namespace: black-friday
+spec:
+  type: ClusterIP
+  selector:
+    app: go-bridge
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-consumer
+  namespace: black-friday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-consumer
+  template:
+    metadata:
+      labels:
+        app: go-consumer
+    spec:
+      containers:
+      - name: go-consumer
+        image: 172.31.14.61:5000/go-consumer:v1
+        env:
+        - name: KAFKA_BROKERS
+          value: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+        - name: VALKEY_ADDR
+          value: "valkey-service.black-friday.svc:6379"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-api
+  namespace: black-friday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rust-api
+  template:
+    metadata:
+      labels:
+        app: rust-api
+    spec:
+      containers:
+      - name: rust-api
+        image: 172.31.14.61:5000/rust-api:v2
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rust-api-service
+  namespace: black-friday
+spec:
+  type: ClusterIP
+  selector:
+    app: rust-api
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rust-api-ingress
+  namespace: black-friday
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: public
+  rules:
+  - http:
+      paths:
+      - path: /purchase
+        pathType: Prefix
+        backend:
+          service:
+            name: rust-api-service
+            port:
+              number: 80

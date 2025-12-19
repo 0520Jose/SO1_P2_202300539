@@ -1,16 +1,14 @@
-FROM golang:1.24.5-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod download
-
 COPY . .
 
-RUN go build -o worker main.go
+RUN go mod tidy
+
+RUN go build -o main .
 
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=builder /app/worker .
-
-CMD ["./worker"]
+COPY --from=builder /app/main .
+CMD ["./main"]

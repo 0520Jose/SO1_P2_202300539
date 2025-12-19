@@ -1,7 +1,0 @@
-C:\Users\emanu\OneDrive\Escritorio\Programación\ProyectosUniversidad\2025\Proyectos\Trebol4Devop\SO1_P2_202300539\Proyecto2\black-friday\rust-api\target\debug\deps\pin_project-5a666c022f0be399.d: C:\Users\emanu\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-1.1.10\src\lib.rs
-
-C:\Users\emanu\OneDrive\Escritorio\Programación\ProyectosUniversidad\2025\Proyectos\Trebol4Devop\SO1_P2_202300539\Proyecto2\black-friday\rust-api\target\debug\deps\libpin_project-5a666c022f0be399.rlib: C:\Users\emanu\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-1.1.10\src\lib.rs
-
-C:\Users\emanu\OneDrive\Escritorio\Programación\ProyectosUniversidad\2025\Proyectos\Trebol4Devop\SO1_P2_202300539\Proyecto2\black-friday\rust-api\target\debug\deps\libpin_project-5a666c022f0be399.rmeta: C:\Users\emanu\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-1.1.10\src\lib.rs
-
-C:\Users\emanu\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pin-project-1.1.10\src\lib.rs:
