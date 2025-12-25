@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: black-friday
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: valkey-vm
+  namespace: black-friday
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        app: valkey
+        kubevirt.io/domain: valkey-vm
+    spec:
+      domain:
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+          - name: default
+            masquerade: {}
+        resources:
+          requests:
+            memory: 512Mi
+      networks:
+      - name: default
+        pod: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: 172.31.14.61:5000/valkey-kubevirt:v1
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              password: blackfridaypass
+              chpasswd: { expire: False }
+              ssh_pwauth: True
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey-service
+  namespace: black-friday
+spec:
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+  selector:
+    app: valkey

@@ -401,3 +401,6 @@ Este proyecto te permitirá desarrollar competencias en:
 - Universidad San Carlos de Guatemala
 - Facultad de Ingeniería
 - Ingeniería en Ciencias y Sistemas
+
+
+ Toma en cuenta toda la estructura de conexiones necesarias, el usuario invoca a locus localmente, locus debe hacer el push trafic hacia el ingress este lo envia al deployment api rest en rost, luego la api rest encia hacia el otro deployment que es una api rest grpc client que tien de 1 a 3 replicas esta en go luego esta envia havia otro grpc server que se un deployment este contiene el kafka writer esta en go este publica hacia otro deployment que es el kafka Strrimzi y esta es consumida por el kafka consumer que es un deploymente en go con 1 a 2 replicas este envia hacia otro deploymente que tien como entrada kubevirt es valkey db y esta es consumida por el deployment grafana, neceisto que todo este flujo se cumpla ademas debes tomar en cuenta que por lo que entinedo el usuario debe subir las imagenes hacia una maquina virutal con un zot container registry y desde ahi la nube debe realizar el pull container images, todo esto se debe cumplir a cabalidad, no puedo cambiar, omitar nada, necesito que revices que todo se cumpla y si hay algo que falte genera una ruta para realizarlo paso a paso todo dentro de aws

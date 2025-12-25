@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zot-config-patch
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: zot-config-patch
+  template:
+    metadata:
+      labels:
+        name: zot-config-patch
+    spec:
+      hostPID: true
+      hostNetwork: true
+      initContainers:
+      - name: patch-containerd
+        image: alpine:3.18
+        securityContext:
+          privileged: true
+        command: ["nsenter", "--target", "1", "--mount", "--uts", "--ipc", "--net", "--pid", "--", "sh", "-c"]
+        args:
+        - |
+          # IP DE TU NUEVA MÁQUINA ZOT
+          ZOT_IP="172.31.32.68"
+          PORT="5000"
+          CONFIG="/etc/containerd/config.toml"
+
+          if ! grep -q "$ZOT_IP:$PORT" $CONFIG; then
+            echo "Parcheando containerd..."
+            cat <<EOF >> $CONFIG
+          [plugins."io.containerd.grpc.v1.cri".registry.mirrors."$ZOT_IP:$PORT"]
+            endpoint = ["http://$ZOT_IP:$PORT"]
+          EOF
+            systemctl restart containerd
+          fi
+      containers:
+      - name: pause
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.2
