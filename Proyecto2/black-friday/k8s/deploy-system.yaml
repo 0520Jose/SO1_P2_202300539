@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: go-writer
-        image: 172.31.14.61:5000/go-writer:v1
+        image: 172.31.32.68:5000/go-writer:v1
         ports:
         - containerPort: 50051
         env:
@@ -54,7 +54,7 @@ spec:
     spec:
       containers:
       - name: go-bridge
-        image: 172.31.14.61:5000/go-bridge:v1
+        image: 172.31.32.68:5000/go-bridge:v1
         ports:
         - containerPort: 8080
         env:
@@ -86,7 +86,7 @@ spec:
     spec:
       containers:
       - name: go-consumer
-        image: 172.31.14.61:5000/go-consumer:v9
+        image: 172.31.32.68:5000/go-consumer:v9
         env:
         - name: KAFKA_BROKERS
           value: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
@@ -118,7 +118,7 @@ spec:
     spec:
       containers:
       - name: rust-api
-        image: 172.31.14.61:5000/rust-api:v2
+        image: 172.31.32.68:5000/rust-api:v2
         ports:
         - containerPort: 3000
         resources:

@@ -10,16 +10,22 @@ struct PurchaseInput {
     cantidad_vendida: i32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct BridgeResponse {
+    estado: String,
+}
+
 #[derive(Serialize, Deserialize)]
 struct StatusResponse {
     status: String,
 }
 
 async fn handle_purchase(Json(payload): Json<PurchaseInput>) -> Json<StatusResponse> {
-    let bridge_url = "http://go-bridge-service:80"; 
+    let bridge_url = "http://go-bridge-service:80";
     let client = reqwest::Client::new();
 
-    let res = client.post(format!("{}/forward", bridge_url))
+    let res = client
+        .post(format!("{}/forward", bridge_url))
         .json(&payload)
         .send()
         .await;
@@ -27,18 +33,23 @@ async fn handle_purchase(Json(payload): Json<PurchaseInput>) -> Json<StatusRespo
     match res {
         Ok(response) => {
             if response.status().is_success() {
-                if let Ok(json_res) = response.json::<StatusResponse>().await {
-                    Json(json_res)
-                } else {
-                    Json(StatusResponse { status: "Decode Error".to_string() })
+                match response.json::<BridgeResponse>().await {
+                    Ok(bridge_res) => Json(StatusResponse {
+                        status: bridge_res.estado,
+                    }),
+                    Err(_) => Json(StatusResponse {
+                        status: "Decode Error".to_string(),
+                    }),
                 }
             } else {
-                Json(StatusResponse { status: "Bridge Error".to_string() })
+                Json(StatusResponse {
+                    status: "Bridge Error".to_string(),
+                })
             }
         }
-        Err(_) => {
-            Json(StatusResponse { status: "Connect Error".to_string() })
-        }
+        Err(_) => Json(StatusResponse {
+            status: "Connect Error".to_string(),
+        }),
     }
 }
 
