@@ -106,7 +106,7 @@ func procesarMensaje(ctx context.Context, rdb *redis.Client, value []byte) {
 	
 	seAsigno, _ := rdb.SetNX(ctx, keyMonitoredName, venta.ProductoID, 0).Result()
 	if seAsigno {
-		log.Printf("🔥 NUEVO ELEGIDO para %s: %s", nombreCat, venta.ProductoID)
+		log.Printf("ELEGIDO para %s: %s", nombreCat, venta.ProductoID)
 	}
 
 	productoElegido, _ := rdb.Get(ctx, keyMonitoredName).Result()

@@ -418,7 +418,7 @@ func procesarMensaje(ctx context.Context, rdb *redis.Client, value []byte) {
 	
 	seAsigno, _ := rdb.SetNX(ctx, keyMonitoredName, venta.ProductoID, 0).Result()
 	if seAsigno {
-		log.Printf("🔥 NUEVO ELEGIDO para %s: %s", nombreCat, venta.ProductoID)
+		log.Printf("ELEGIDO para %s: %s", nombreCat, venta.ProductoID)
 	}
 
 	productoElegido, _ := rdb.Get(ctx, keyMonitoredName).Result()
@@ -855,23 +855,67 @@ kubectl apply -f k8s/hpa.yaml
 
 ## 5. Análisis de Rendimiento y Conclusiones
 
-### 5.1. Comparativa: API REST vs gRPC
-Durante el desarrollo se evidenció la superioridad de gRPC para la comunicación interna entre microservicios (Bridge $\rightarrow$ Writer).
+### Pruebas de Escalabilidad (HPA en Rust)
 
-- Latencia: gRPC redujo el tiempo de serialización gracias a Protocol Buffers (formato binario) frente al JSON de REST.
-- Conexión: El uso de HTTP/2 en gRPC permitió multiplexar múltiples peticiones en una sola conexión TCP, reduciendo la sobrecarga de handshakes bajo alta carga.
+- Estado inicial  
+   Locust apagado
+![alt text](image.png)
 
-### 5.2. Impacto de Kafka (Desacoplamiento)
-La introducción de Kafka fue crítica para la estabilidad del sistema.
+- Estado de trabajo con 10 usuarios  
+   Locust con poca carga  
+   ![alt text](image-5.png)
 
-- Sin Kafka: Un pico de tráfico en Locust impactaría directamente la base de datos, causando timeouts.
-- Con Kafka: El Go Writer acepta las peticiones rápidamente y las encola. El Go Consumer procesa los mensajes a una velocidad constante y controlada, protegiendo a Valkey de saturación ("Backpressure").
+   ![alt text](image-2.png)
 
-### 5.3. Persistencia en Valkey
-Se validó la robustez de la configuración de almacenamiento.
+- Estado de trabajo con 100 usuarios  
+   Locus con alta carga  
+   ![alt text](image-3.png)
 
-- Prueba: Se eliminaron intencionalmente los pods de Valkey (kubectl delete pod ...).
-- Resultado: Kubernetes recreó los pods y, gracias al PVC montado en /data, el archivo dump.rdb fue recargado, recuperando el 100% de los contadores y rankings de ventas previos.
+   ![alt text](image-4.png)
+
+### Prubeas de impacto en replicas en Valkey
+
+En primer lugar se realizo pruebas con solo una replica, por lo que el sistema se configura a una replica.  
+
+![alt text](image-6.png)
+
+En grafana la visualización de los datos es normal. 
+![alt text](image-7.png)
+
+Segunda prueba realizada con dos replicas, sistema configurado para dos replicas.  
+
+![alt text](image-8.png)
+
+En grafana la visualización de los datos sigue siendo eficiente pero en algunas ocaciones se producen fallos al mostrar datos.
+
+![alt text](image-15.png)
+
+### Escalado de Writers (gRPC)
+
+En primer lugar se realizó una prueba solo con una replica. Sistema configurado a una replica.
+
+![alt text](image-9.png)
+
+El sistema distribuye la carga sobre la unica replica.
+
+![alt text](image-10.png)
+
+Segunda prueba realizada con dos replicas. Sistema configurado a dos replicas.
+
+![alt text](image-11.png)
+
+![alt text](image-12.png)
+
+El sistema la asigna los recursos de manera que no se sature alguna de las replicas.
+
+![alt text](image-13.png)
+
+
+### Comparacion de consumno de recursos
+
+![alt text](image-14.png)
+
+Como vemos el consumo de go-writer es minimo que esta usando gRPC apenas 8m de los cores del CPU mientras que el rust-api con las 3 replicas usa  cada una un promedio de 455m cores de CPU siendo que esta usa una API REST demuestra las ventajas que permite gRPC.
 
 ### 5.4. Conclusión Final
-La arquitectura implementada cumple con los requisitos de alta disponibilidad y escalabilidad. El uso de HPA permitió al sistema adaptarse a la carga variable de Locust, mientras que la separación de responsabilidades (Producer/Consumer) aseguró que ningún componente individual se convirtiera en un punto único de fallo crítico para la ingestión de datos.
+Se comprobó que la arquitectura funciona correctamente, garantizando que el sistema esté siempre disponible y pueda crecer según la demanda. El mecanismo de autoescalado (HPA) ajusta los recursos automáticamente ante los cambios en el tráfico de procesamiento actual. Además, al separar las tareas de recepción y procesamiento, se evita que un fallo en un solo punto detuviera la entrada de datos, haciendo el sistema mucho más resistente.
