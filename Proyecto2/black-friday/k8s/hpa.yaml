@@ -1,0 +1,43 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rust-api-hpa
+  namespace: black-friday
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rust-api
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 30
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: go-bridge-hpa
+  namespace: black-friday
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: go-bridge
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 50
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: go-consumer-hpa
+  namespace: black-friday
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: go-consumer
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 50
